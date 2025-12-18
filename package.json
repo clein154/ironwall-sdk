@@ -1,0 +1,19 @@
+{
+  "name": "ironwall-sdk",
+  "version": "1.0.0",
+  "description": "Client-side Proof of Work protection for APIs",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["security", "ddos", "pow", "rate-limit"],
+  "author": "IronWall Protocol",
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
