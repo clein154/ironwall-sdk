@@ -1,6 +1,6 @@
 {
   "name": "ironwall-sdk",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Client-side Proof of Work protection for APIs",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

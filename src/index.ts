@@ -1,14 +1,28 @@
-// Define global types for the window object to avoid TS errors
+// Define global types for the window object
 declare global {
   interface Window {
     hashwasm: any;
+    IronWall: any;
   }
 }
 
-interface IronWallConfig {
+// 1. Define the Strict Contract (The Interface)
+export interface IronWallConfig {
   apiKey: string;
   apiUrl?: string;
   debug?: boolean;
+}
+
+export interface IronWallDifficulty {
+  memoryCost: number;
+  timeCost: number;
+  parallelism: number;
+}
+
+export interface IronWallChallenge {
+  passportId: string;
+  salt: string;
+  difficulty: IronWallDifficulty;
 }
 
 export class IronWall {
@@ -17,10 +31,6 @@ export class IronWall {
   private static debug: boolean = false;
   private static initialized: boolean = false;
 
-  /**
-   * Initialize the IronWall SDK
-   * @param config Configuration object
-   */
   static configure(config: string | IronWallConfig) {
     if (typeof config === 'string') {
       this.apiKey = config;
@@ -35,32 +45,25 @@ export class IronWall {
     this.initialized = true;
   }
 
-  /**
-   * The Main Guard Function.
-   * Call this before sensitive actions (Login, Register, AI generation).
-   */
   static async guard(): Promise<string> {
     if (!this.initialized) throw new Error('IronWall not configured. Call IronWall.configure(key) first.');
 
     this.log('🛡️ Starting Handshake...');
     
-    // 1. Ensure Dependencies are ready
     await this.waitForLib();
 
     try {
-      // 2. Request Challenge
-      const challenge = await this.fetchChallenge();
+      // 2. Use Strict Type here
+      const challenge: IronWallChallenge = await this.fetchChallenge();
       this.log('Received Challenge', challenge);
 
-      // 3. Solve (Proof of Work)
       const solution = await this.solvePuzzle(challenge);
       this.log('Puzzle Solved', 'Sending Proof...');
 
-      // 4. Verify
       const result = await this.verifySolution(challenge.passportId, solution);
       this.log('✅ Access Granted');
       
-      return result.passport; // Return the passport/token
+      return result.passport;
 
     } catch (error: any) {
       console.error('[IronWall] Blocked:', error.message);
@@ -74,9 +77,8 @@ export class IronWall {
     if (this.debug) console.log('[IronWall]', ...args);
   }
 
-  // Lazy Load the Argon2 WASM library (Keeps our SDK tiny)
   private static loadDependency() {
-    if (typeof window === 'undefined') return; // Server-side safety
+    if (typeof window === 'undefined') return;
     if (document.getElementById('ironwall-wasm-lib')) return;
     
     const script = document.createElement('script');
@@ -96,7 +98,7 @@ export class IronWall {
           clearInterval(interval);
           resolve();
         }
-        if (attempts > 100) { // 10 seconds timeout
+        if (attempts > 100) {
             clearInterval(interval);
             console.error("IronWall: Failed to load cryptographic engine.");
         }
@@ -104,18 +106,25 @@ export class IronWall {
     });
   }
 
-  private static async fetchChallenge() {
+  // 3. Return Type defined
+  private static async fetchChallenge(): Promise<IronWallChallenge> {
     const res = await fetch(`${this.apiUrl}/challenge`, {
       headers: { 'x-api-key': this.apiKey }
     });
     if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
     const json = await res.json();
-    return json.data;
+    return json.data as IronWallChallenge;
   }
 
-  private static async solvePuzzle(challenge: any) {
+  //  4. Argument Type defined (No more 'any')
+  private static async solvePuzzle(challenge: IronWallChallenge): Promise<string> {
     const { salt, difficulty } = challenge;
-    // Uses the externally loaded hash-wasm library
+    
+    // Safety check for runtime data integrity
+    if (!difficulty || !difficulty.memoryCost) {
+        throw new Error("Invalid Challenge Contract");
+    }
+
     return await window.hashwasm.argon2id({
       password: salt,
       salt: salt,
@@ -144,7 +153,7 @@ export class IronWall {
 
 if (typeof window !== 'undefined') {
   // @ts-ignore
-  window.IronWall = IronWall; 
+  window.IronWall = IronWall;
 }
 
 export default IronWall;
